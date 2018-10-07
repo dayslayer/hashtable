@@ -1,4 +1,4 @@
-#include "../include/hash_table.h"
+#include "hashtable.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +11,7 @@ struct ht_entry_s
     struct ht_entry_s *next;
 };
 
-struct hash_table_s
+struct hashtable_s
 {
     struct ht_entry_s **buckets;
 
@@ -25,10 +25,10 @@ struct hash_table_s
 static unsigned ht_hash (char *key, int mod);
 
 
-hash_table_t *ht_create (int size)
+hashtable *ht_create (int size)
 {
     int i;
-    hash_table_t *ht = malloc(sizeof(hash_table_t));
+    hashtable *ht = malloc(sizeof(hashtable));
 
     if (ht == NULL)
         return NULL;
@@ -49,7 +49,7 @@ hash_table_t *ht_create (int size)
     return ht;
 }
 
-void ht_destroy (hash_table_t *ht, void (*free_data)(void*))
+void ht_destroy (hashtable *ht, void (*free_data)(void*))
 {
     int i;
     struct ht_entry_s *p;
@@ -69,22 +69,22 @@ void ht_destroy (hash_table_t *ht, void (*free_data)(void*))
     free(ht);
 }
 
-int ht_size (hash_table_t *ht)
+int ht_size (hashtable *ht)
 {
     return ht->n_buckets;
 }
 
-int ht_count (hash_table_t *ht)
+int ht_count (hashtable *ht)
 {
     return ht->n_entries;
 }
 
-float ht_load_factor (hash_table_t *ht)
+float ht_load_factor (hashtable *ht)
 {
     return (float)ht->n_entries / ht->n_buckets;
 }
 
-void *ht_find_key (hash_table_t *ht, char *key)
+void *ht_find_key (hashtable *ht, char *key)
 {
     struct ht_entry_s *entry;
     unsigned hash = ht_hash(key, ht->n_buckets);
@@ -96,7 +96,7 @@ void *ht_find_key (hash_table_t *ht, char *key)
     return NULL;
 }
 
-int ht_insert (hash_table_t *ht, char *key, void *value, int replace, void (*free_data)(void*))
+int ht_insert (hashtable *ht, char *key, void *value, int replace, void (*free_data)(void*))
 {
     struct ht_entry_s *entry;
 
@@ -146,9 +146,10 @@ int ht_insert (hash_table_t *ht, char *key, void *value, int replace, void (*fre
     return 1;
 }
 
-int ht_remove_key (hash_table_t *ht, char *key, void **value, void (*free_data)(void*))
+void *ht_remove_key (hashtable *ht, char *key)
 {
     struct ht_entry_s *entry, *prev;
+    void *value;
 
     unsigned hash = ht_hash(key, ht->n_buckets);
     int found = 0;
@@ -162,24 +163,21 @@ int ht_remove_key (hash_table_t *ht, char *key, void **value, void (*free_data)(
     }
 
     if (!found)
-        return 0;
+        return NULL;
+
+    value = entry->value;
 
     if (entry == ht->buckets[hash])
         ht->buckets[hash] = entry->next;
     else
         prev->next = entry->next;
 
-    if (free_data != NULL)
-        free_data(entry->value);
-    else if (value != NULL)
-        *value = entry->value;
+    ht->n_entries--;
 
     free(entry->key);
     free(entry);
 
-    ht->n_entries--;
-
-    return 1;
+    return value;
 }
 
 static unsigned ht_hash (char *key, int mod)
@@ -197,7 +195,7 @@ static unsigned ht_hash (char *key, int mod)
 
 #include <stdio.h>
 
-void ht_dbg_distribution (hash_table_t *ht, int group)
+void ht_dbg_distribution (hashtable *ht, int group)
 {
     int i, t;
     struct ht_entry_s *p;
@@ -220,7 +218,7 @@ void ht_dbg_distribution (hash_table_t *ht, int group)
     printf("\n");
 }
 
-void ht_dbg_allocation (hash_table_t *ht)
+void ht_dbg_allocation (hashtable *ht)
 {
     int i, j, count;
     struct ht_entry_s *p;
